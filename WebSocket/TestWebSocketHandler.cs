@@ -10,8 +10,8 @@ using Newtonsoft.Json;
 public class TestWebSocketHandler : WebSocketHandler
 {
     private static WebSocketCollection clients = new WebSocketCollection();
-    private string name;
-    private string room;
+    //private string name;
+    //private string room;
     private JObject all_message = new JObject() { };
 
     public TestWebSocketHandler()
@@ -20,11 +20,8 @@ public class TestWebSocketHandler : WebSocketHandler
 
     public override void OnOpen()
     {
-        this.name = this.WebSocketContext.QueryString["name"];//使用者名稱
-        this.room = this.WebSocketContext.QueryString["room"];//房間名稱
-
         clients.Add(this);
-        clients.Broadcast(name + " has connected.");
+        clients.Broadcast("Connected");
     }
 
     public override void OnMessage(string message)
@@ -32,7 +29,8 @@ public class TestWebSocketHandler : WebSocketHandler
         clients.Broadcast("back onmessage");
         try
         {
-            setMessage(name, message);
+            ClientData data = JsonConvert.DeserializeObject<ClientData>(message);
+            setMessage(data.room,data.name, data.msg);
             string reJStr = JsonConvert.SerializeObject(all_message);
             clients.Broadcast(reJStr);
         }
@@ -54,7 +52,7 @@ public class TestWebSocketHandler : WebSocketHandler
     public override void OnClose()
     {
         clients.Remove(this);
-        clients.Broadcast(string.Format("{0} has gone away.", name));
+        //clients.Broadcast(string.Format("{0} has gone away.", name));
     }
 
     public override void OnError()
@@ -62,23 +60,29 @@ public class TestWebSocketHandler : WebSocketHandler
         clients.Broadcast(string.Format("Error：{0}", base.Error.ToString()));
     }
 
-    public void setMessage(string name, string message)
+    public void setMessage(string room ,string name, string message)
     {
         JObject talk = new JObject() { new JProperty("name", name), new JProperty("message", message) };
 
-        if (all_message[this.room] == null)
+        if (all_message[room] == null)
         {
             JArray tempArray = new JArray();
             tempArray.Add(talk);
             JObject tempObject = new JObject() { new JProperty("talk", tempArray) };
-            all_message.Add(new JProperty(this.room, tempObject));
+            all_message.Add(new JProperty(room, tempObject));
         }
         else
         {
-            JArray temp = (JArray)all_message[this.room]["talk"];
+            JArray temp = (JArray)all_message[room]["talk"];
             //傳址
             temp.Add(talk);
         }
     }
 
+    class ClientData
+    {
+        public string name { get; set; }
+        public string room { get; set; }
+        public string msg { get; set; }
+    }
 }
