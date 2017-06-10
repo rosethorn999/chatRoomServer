@@ -10,9 +10,6 @@ using Newtonsoft.Json;
 public class TestWebSocketHandler : WebSocketHandler
 {
     private static WebSocketCollection clients = new WebSocketCollection();
-    //private string name;
-    //private string room;
-    private JObject all_message = new JObject() { };
 
     public TestWebSocketHandler()
     {
@@ -29,10 +26,7 @@ public class TestWebSocketHandler : WebSocketHandler
         clients.Broadcast("back onmessage");
         try
         {
-            ClientData data = JsonConvert.DeserializeObject<ClientData>(message);
-            setMessage(data.room,data.name, data.msg);
-            string reJStr = JsonConvert.SerializeObject(all_message);
-            clients.Broadcast(reJStr);
+            clients.Broadcast(message);
         }
         catch (Exception ex)
         {
@@ -60,29 +54,4 @@ public class TestWebSocketHandler : WebSocketHandler
         clients.Broadcast(string.Format("Error：{0}", base.Error.ToString()));
     }
 
-    public void setMessage(string room ,string name, string message)
-    {
-        JObject talk = new JObject() { new JProperty("name", name), new JProperty("message", message) };
-
-        if (all_message[room] == null)
-        {
-            JArray tempArray = new JArray();
-            tempArray.Add(talk);
-            JObject tempObject = new JObject() { new JProperty("talk", tempArray) };
-            all_message.Add(new JProperty(room, tempObject));
-        }
-        else
-        {
-            JArray temp = (JArray)all_message[room]["talk"];
-            //傳址
-            temp.Add(talk);
-        }
-    }
-
-    class ClientData
-    {
-        public string name { get; set; }
-        public string room { get; set; }
-        public string msg { get; set; }
-    }
 }
